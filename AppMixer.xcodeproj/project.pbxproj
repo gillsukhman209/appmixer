@@ -1,0 +1,366 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* AppMixerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* AppMixerApp.swift */; };
+		100000000000000000000002 /* MixerPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* MixerPopoverView.swift */; };
+		100000000000000000000003 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* MenuBarController.swift */; };
+		100000000000000000000004 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* AudioEngine.swift */; };
+		100000000000000000000005 /* ProcessAudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* ProcessAudioSession.swift */; };
+		100000000000000000000006 /* AppVolumeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* AppVolumeStore.swift */; };
+		100000000000000000000007 /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000007 /* PermissionsManager.swift */; };
+		100000000000000000000008 /* OutputDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* OutputDeviceManager.swift */; };
+		100000000000000000000009 /* InstallerHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* InstallerHelper.swift */; };
+		100000000000000000000010 /* VirtualAudioDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* VirtualAudioDevice.swift */; };
+		100000000000000000000011 /* CoreAudioTapBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* CoreAudioTapBridge.mm */; };
+		100000000000000000000012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* Assets.xcassets */; };
+		100000000000000000000014 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000014 /* CoreAudio.framework */; };
+		100000000000000000000015 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000015 /* AudioUnit.framework */; };
+		100000000000000000000016 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000016 /* AudioToolbox.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		200000000000000000000001 /* AppMixerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMixerApp.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* MixerPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPopoverView.swift; sourceTree = "<group>"; };
+		200000000000000000000003 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		200000000000000000000004 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* ProcessAudioSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessAudioSession.swift; sourceTree = "<group>"; };
+		200000000000000000000006 /* AppVolumeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVolumeStore.swift; sourceTree = "<group>"; };
+		200000000000000000000007 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
+		200000000000000000000008 /* OutputDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputDeviceManager.swift; sourceTree = "<group>"; };
+		200000000000000000000009 /* InstallerHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallerHelper.swift; sourceTree = "<group>"; };
+		200000000000000000000010 /* VirtualAudioDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualAudioDevice.swift; sourceTree = "<group>"; };
+		200000000000000000000011 /* CoreAudioTapBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreAudioTapBridge.mm; sourceTree = "<group>"; };
+		200000000000000000000017 /* CoreAudioTapBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreAudioTapBridge.h; sourceTree = "<group>"; };
+		200000000000000000000018 /* AppMixer-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "AppMixer-Bridging-Header.h"; sourceTree = "<group>"; };
+		200000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		200000000000000000000013 /* install_driver.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = Scripts/install_driver.sh; sourceTree = SOURCE_ROOT; };
+		200000000000000000000019 /* uninstall_driver.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = Scripts/uninstall_driver.sh; sourceTree = SOURCE_ROOT; };
+		200000000000000000000020 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = Scripts/build.sh; sourceTree = SOURCE_ROOT; };
+		200000000000000000000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		200000000000000000000022 /* AppMixer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppMixer.entitlements; sourceTree = "<group>"; };
+		200000000000000000000023 /* AppMixer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppMixer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000014 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		200000000000000000000015 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		200000000000000000000016 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		200000000000000000000024 /* AppMixerAudioServerPlugIn.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VirtualAudioPlugin/AppMixerAudioServerPlugIn.cpp; sourceTree = SOURCE_ROOT; };
+		200000000000000000000025 /* Driver Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = VirtualAudioPlugin/Info.plist; sourceTree = SOURCE_ROOT; };
+		200000000000000000000026 /* AppMixerPlugin.exp */ = {isa = PBXFileReference; lastKnownFileType = text; path = VirtualAudioPlugin/AppMixerPlugin.exp; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		300000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000014 /* CoreAudio.framework in Frameworks */,
+				100000000000000000000015 /* AudioUnit.framework in Frameworks */,
+				100000000000000000000016 /* AudioToolbox.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		400000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				400000000000000000000002 /* AppMixer */,
+				400000000000000000000006 /* VirtualAudioPlugin */,
+				400000000000000000000007 /* Scripts */,
+				400000000000000000000005 /* Frameworks */,
+				400000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		400000000000000000000002 /* AppMixer */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000001 /* AppMixerApp.swift */,
+				200000000000000000000003 /* MenuBarController.swift */,
+				400000000000000000000008 /* UI */,
+				400000000000000000000003 /* Audio */,
+				200000000000000000000012 /* Assets.xcassets */,
+				200000000000000000000021 /* Info.plist */,
+				200000000000000000000022 /* AppMixer.entitlements */,
+			);
+			path = AppMixer;
+			sourceTree = "<group>";
+		};
+		400000000000000000000003 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000004 /* AudioEngine.swift */,
+				200000000000000000000005 /* ProcessAudioSession.swift */,
+				200000000000000000000006 /* AppVolumeStore.swift */,
+				200000000000000000000007 /* PermissionsManager.swift */,
+				200000000000000000000008 /* OutputDeviceManager.swift */,
+				200000000000000000000009 /* InstallerHelper.swift */,
+				200000000000000000000010 /* VirtualAudioDevice.swift */,
+				200000000000000000000011 /* CoreAudioTapBridge.mm */,
+				200000000000000000000017 /* CoreAudioTapBridge.h */,
+				200000000000000000000018 /* AppMixer-Bridging-Header.h */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		400000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000023 /* AppMixer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		400000000000000000000005 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000014 /* CoreAudio.framework */,
+				200000000000000000000015 /* AudioUnit.framework */,
+				200000000000000000000016 /* AudioToolbox.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		400000000000000000000006 /* VirtualAudioPlugin */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000024 /* AppMixerAudioServerPlugIn.cpp */,
+				200000000000000000000025 /* Driver Info.plist */,
+				200000000000000000000026 /* AppMixerPlugin.exp */,
+			);
+			name = VirtualAudioPlugin;
+			sourceTree = "<group>";
+		};
+		400000000000000000000007 /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000013 /* install_driver.sh */,
+				200000000000000000000019 /* uninstall_driver.sh */,
+				200000000000000000000020 /* build.sh */,
+			);
+			name = Scripts;
+			sourceTree = "<group>";
+		};
+		400000000000000000000008 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000002 /* MixerPopoverView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		500000000000000000000001 /* AppMixer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000002 /* Build configuration list for PBXNativeTarget "AppMixer" */;
+			buildPhases = (
+				700000000000000000000001 /* Sources */,
+				300000000000000000000001 /* Frameworks */,
+				700000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AppMixer;
+			productName = AppMixer;
+			productReference = 200000000000000000000023 /* AppMixer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		600000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					500000000000000000000001 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = 800000000000000000000001 /* Build configuration list for PBXProject "AppMixer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 400000000000000000000001;
+			productRefGroup = 400000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				500000000000000000000001 /* AppMixer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		700000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000012 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		700000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001 /* AppMixerApp.swift in Sources */,
+				100000000000000000000002 /* MixerPopoverView.swift in Sources */,
+				100000000000000000000003 /* MenuBarController.swift in Sources */,
+				100000000000000000000004 /* AudioEngine.swift in Sources */,
+				100000000000000000000005 /* ProcessAudioSession.swift in Sources */,
+				100000000000000000000006 /* AppVolumeStore.swift in Sources */,
+				100000000000000000000007 /* PermissionsManager.swift in Sources */,
+				100000000000000000000008 /* OutputDeviceManager.swift in Sources */,
+				100000000000000000000009 /* InstallerHelper.swift in Sources */,
+				100000000000000000000010 /* VirtualAudioDevice.swift in Sources */,
+				100000000000000000000011 /* CoreAudioTapBridge.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		900000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		900000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		900000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AppMixer/AppMixer.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AppMixer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.clarity.appmixer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "AppMixer/Audio/AppMixer-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		900000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = AppMixer/AppMixer.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AppMixer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.clarity.appmixer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "AppMixer/Audio/AppMixer-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		800000000000000000000001 /* Build configuration list for PBXProject "AppMixer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000001 /* Debug */,
+				900000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		800000000000000000000002 /* Build configuration list for PBXNativeTarget "AppMixer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000003 /* Debug */,
+				900000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 600000000000000000000001 /* Project object */;
+}
