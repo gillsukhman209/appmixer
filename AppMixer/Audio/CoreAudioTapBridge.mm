@@ -3,7 +3,9 @@
 #import <AudioUnit/AudioUnit.h>
 #import <CoreAudio/CATapDescription.h>
 #import <CoreAudio/AudioHardwareTapping.h>
+#import <algorithm>
 #import <atomic>
+#import <cmath>
 #import <mutex>
 #import <vector>
 
@@ -24,13 +26,19 @@ static NSString *AMKey(const char *key) {
 class AMFloatRingBuffer {
 public:
     explicit AMFloatRingBuffer(size_t capacityFrames = 48000 * 4)
-    : _capacityFrames(capacityFrames), _samples(capacityFrames * 2, 0.0f) {}
+    : _capacityFrames(capacityFrames), _samples(capacityFrames * 2, 0.0f) {
+        _peakLevel.store(0.0f);
+    }
 
     void write(const AudioBufferList *input, UInt32 frameCount, float gain) {
         if (input == nullptr || frameCount == 0) { return; }
         _totalInputFrames += frameCount;
-        if (gain <= 0.0f) { return; }
+        if (gain <= 0.0f) {
+            _peakLevel.store(0.0f);
+            return;
+        }
         std::lock_guard<std::mutex> lock(_mutex);
+        float peak = 0.0f;
 
         for (UInt32 frame = 0; frame < frameCount; ++frame) {
             float left = 0.0f;
@@ -52,6 +60,7 @@ public:
 
             _samples[(_writeFrame * 2) % _samples.size()] = left;
             _samples[((_writeFrame * 2) + 1) % _samples.size()] = right;
+            peak = std::max(peak, std::max(fabsf(left), fabsf(right)));
             _writeFrame = (_writeFrame + 1) % _capacityFrames;
             if (_availableFrames < _capacityFrames) {
                 ++_availableFrames;
@@ -59,6 +68,7 @@ public:
                 _readFrame = (_readFrame + 1) % _capacityFrames;
             }
         }
+        _peakLevel.store(std::min(peak, 1.0f));
     }
 
     void mixInto(AudioBufferList *output, UInt32 frameCount) {
@@ -88,6 +98,7 @@ public:
     }
 
     uint64_t totalInputFrames() const { return _totalInputFrames.load(); }
+    float consumePeakLevel() { return _peakLevel.exchange(0.0f); }
 
 private:
     std::mutex _mutex;
@@ -97,6 +108,7 @@ private:
     size_t _readFrame = 0;
     size_t _availableFrames = 0;
     std::atomic<uint64_t> _totalInputFrames = 0;
+    std::atomic<float> _peakLevel;
 };
 
 @class AMCoreAudioTapMixer;
@@ -277,6 +289,18 @@ private:
         [parts addObject:tap.diagnosticSummary];
     }
     return parts.count == 0 ? @"No process taps are active." : [parts componentsJoinedByString:@"\n"];
+}
+
+- (NSDictionary<NSString *, NSNumber *> *)peakLevelsByBundleIdentifier {
+    NSMutableDictionary<NSString *, NSNumber *> *levels = [NSMutableDictionary dictionary];
+    NSArray<AMProcessTap *> *taps = nil;
+    @synchronized (self) {
+        taps = _taps.allValues;
+    }
+    for (AMProcessTap *tap in taps) {
+        levels[tap.bundleIdentifier] = @(tap.ringBuffer->consumePeakLevel());
+    }
+    return levels;
 }
 
 - (void)renderIntoBufferList:(AudioBufferList *)bufferList frameCount:(UInt32)frameCount outputDeviceID:(AudioObjectID)outputDeviceID {

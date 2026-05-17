@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) BOOL running;
 @property (nonatomic) float masterVolume;
 @property (nonatomic, readonly) NSString *diagnosticSummary;
+@property (nonatomic, readonly) NSDictionary<NSString *, NSNumber *> *peakLevelsByBundleIdentifier;
 
 - (BOOL)startWithOutputDeviceID:(AudioObjectID)outputDeviceID error:(NSError **)error;
 - (void)stop;

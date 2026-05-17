@@ -8,6 +8,7 @@ final class AppVolumeStore {
     private let masterKey = "AppMixer.masterVolume"
     private let preferredInputKey = "AppMixer.preferredInputUID"
     private let microphoneGuardKey = "AppMixer.microphoneGuardEnabled"
+    private let profilesKey = "AppMixer.outputProfiles"
 
     var masterVolume: Float {
         get {
@@ -67,6 +68,17 @@ final class AppVolumeStore {
         }
         set {
             defaults.set(newValue, forKey: microphoneGuardKey)
+        }
+    }
+
+    var outputProfiles: [OutputProfile] {
+        get {
+            guard let data = defaults.data(forKey: profilesKey) else { return [] }
+            return (try? JSONDecoder().decode([OutputProfile].self, from: data)) ?? []
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            defaults.set(data, forKey: profilesKey)
         }
     }
 

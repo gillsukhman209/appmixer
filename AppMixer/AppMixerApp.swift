@@ -14,6 +14,9 @@ struct AppMixerApp: App {
                 }
         } label: {
             Image(systemName: "slider.horizontal.3")
+                .task {
+                    await audioEngine.start()
+                }
         }
         .menuBarExtraStyle(.window)
     }

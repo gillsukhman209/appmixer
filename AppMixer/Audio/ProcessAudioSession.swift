@@ -16,6 +16,7 @@ struct ProcessAudioSession: Identifiable, Equatable {
     var volume: Float
     var isMuted: Bool
     var isTapRunning: Bool
+    var peakLevel: Float = 0
 
     static func == (lhs: ProcessAudioSession, rhs: ProcessAudioSession) -> Bool {
         lhs.id == rhs.id &&
@@ -23,7 +24,8 @@ struct ProcessAudioSession: Identifiable, Equatable {
         lhs.outputDeviceUID == rhs.outputDeviceUID &&
         lhs.volume == rhs.volume &&
         lhs.isMuted == rhs.isMuted &&
-        lhs.isTapRunning == rhs.isTapRunning
+        lhs.isTapRunning == rhs.isTapRunning &&
+        lhs.peakLevel == rhs.peakLevel
     }
 }
 
@@ -39,4 +41,17 @@ struct AudioInputDevice: Identifiable, Equatable {
     let name: String
     let isLikelyHeadsetMicrophone: Bool
     let isLikelyBuiltInMicrophone: Bool
+}
+
+struct OutputProfile: Identifiable, Codable, Equatable {
+    var id: UUID
+    var name: String
+    var masterVolume: Float
+    var appSettings: [String: OutputProfileAppSetting]
+}
+
+struct OutputProfileAppSetting: Codable, Equatable {
+    var volume: Float
+    var isMuted: Bool
+    var outputDeviceUID: String?
 }

@@ -17,6 +17,7 @@ final class AudioEngine: ObservableObject {
     @Published var statusMessage: StatusMessage?
     @Published var isProcessing = false
     @Published var masterVolume: Float
+    @Published var outputProfiles: [OutputProfile]
 
     private let store = AppVolumeStore()
     private let outputManager = OutputDeviceManager()
@@ -25,7 +26,11 @@ final class AudioEngine: ObservableObject {
     private let virtualDevice = VirtualAudioDevice()
     private let tapMixer = AMCoreAudioTapMixer()
     private var refreshTask: Task<Void, Never>?
+    private var meterTask: Task<Void, Never>?
     private var identityCache: [String: AppDisplayIdentity] = [:]
+    private var didStartRuntime = false
+    private var didAttemptLaunchProcessing = false
+    private var userPausedProcessing = false
 
     var backendDescription: String {
         if #available(macOS 14.2, *) {
@@ -37,16 +42,24 @@ final class AudioEngine: ObservableObject {
 
     init() {
         masterVolume = store.masterVolume
+        outputProfiles = store.outputProfiles
         preferredInputDeviceUID = store.preferredInputUID
         microphoneGuardEnabled = store.microphoneGuardEnabled
         tapMixer.masterVolume = masterVolume
     }
 
     func start() async {
+        guard !didStartRuntime else {
+            startProcessingIfNeededFromLaunch()
+            return
+        }
+
+        didStartRuntime = true
         reloadOutputs()
         reloadInputs()
         enforceMicrophonePolicy()
         refreshNow()
+        startProcessingIfNeededFromLaunch()
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -56,13 +69,27 @@ final class AudioEngine: ObservableObject {
                 }
             }
         }
+        meterTask?.cancel()
+        meterTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(80))
+                await MainActor.run {
+                    self?.refreshPeakLevels()
+                }
+            }
+        }
     }
 
     func refreshNow() {
         reloadOutputs()
         reloadInputs()
         enforceMicrophonePolicy()
-        let fresh = enumerateAudioProcesses()
+        let previousLevels = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0.peakLevel) })
+        let fresh = enumerateAudioProcesses().map { session in
+            var updated = session
+            updated.peakLevel = previousLevels[session.id] ?? 0
+            return updated
+        }
         sessions = fresh
         if isProcessing {
             syncTaps()
@@ -73,6 +100,7 @@ final class AudioEngine: ObservableObject {
         if isProcessing {
             tapMixer.stop()
             isProcessing = false
+            userPausedProcessing = true
             statusMessage = nil
             sessions = sessions.map { session in
                 var updated = session
@@ -82,6 +110,17 @@ final class AudioEngine: ObservableObject {
             return
         }
 
+        userPausedProcessing = false
+        startProcessing()
+    }
+
+    private func startProcessingIfNeededFromLaunch() {
+        guard !didAttemptLaunchProcessing, !userPausedProcessing, !isProcessing else { return }
+        didAttemptLaunchProcessing = true
+        startProcessing()
+    }
+
+    private func startProcessing() {
         guard permissionsManager.canUseProcessTaps else {
             statusMessage = StatusMessage(
                 title: "Unsupported macOS Version",
@@ -149,6 +188,63 @@ final class AudioEngine: ObservableObject {
         masterVolume = clampedValue
         store.masterVolume = clampedValue
         tapMixer.masterVolume = clampedValue
+    }
+
+    func saveCurrentOutputProfile(named name: String? = nil) {
+        var appSettings: [String: OutputProfileAppSetting] = [:]
+        for session in sessions {
+            appSettings[session.bundleIdentifier] = OutputProfileAppSetting(
+                volume: session.volume,
+                isMuted: session.isMuted,
+                outputDeviceUID: session.outputDeviceUID
+            )
+        }
+        let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let profileName = trimmedName?.isEmpty == false ? trimmedName! : nextProfileName()
+        let profile = OutputProfile(
+            id: UUID(),
+            name: profileName,
+            masterVolume: masterVolume,
+            appSettings: appSettings
+        )
+        outputProfiles.insert(profile, at: 0)
+        store.outputProfiles = outputProfiles
+        statusMessage = StatusMessage(title: "Profile Saved", detail: "\(profile.name) saved with current app volumes and routes.", style: .info)
+    }
+
+    func applyOutputProfile(_ profileID: UUID) {
+        guard let profile = outputProfiles.first(where: { $0.id == profileID }) else { return }
+        setMasterVolume(profile.masterVolume)
+
+        for (bundleIdentifier, setting) in profile.appSettings {
+            store.setVolume(setting.volume, for: bundleIdentifier)
+            store.setMuted(setting.isMuted, for: bundleIdentifier)
+            store.setOutputUID(setting.outputDeviceUID, for: bundleIdentifier)
+        }
+
+        sessions = sessions.map { session in
+            guard let setting = profile.appSettings[session.bundleIdentifier] else { return session }
+            let target = outputTarget(for: session.bundleIdentifier, explicitUID: setting.outputDeviceUID)
+            var updated = session
+            updated.volume = setting.volume.clampedVolume
+            updated.isMuted = setting.isMuted
+            updated.outputDeviceID = target.id
+            updated.outputDeviceUID = target.explicitUID
+            updated.outputDeviceName = target.name
+            tapMixer.setVolume(updated.volume, forBundleIdentifier: session.audioProcessBundleIdentifier)
+            tapMixer.setMuted(updated.isMuted, forBundleIdentifier: session.audioProcessBundleIdentifier)
+            if isProcessing {
+                try? tapMixer.setOutputDeviceID(target.id, forBundleIdentifier: session.audioProcessBundleIdentifier)
+            }
+            return updated
+        }
+
+        statusMessage = StatusMessage(title: "Profile Applied", detail: "\(profile.name) is active.", style: .info)
+    }
+
+    func deleteOutputProfile(_ profileID: UUID) {
+        outputProfiles.removeAll { $0.id == profileID }
+        store.outputProfiles = outputProfiles
     }
 
     func setMicrophoneGuardEnabled(_ isEnabled: Bool) {
@@ -338,6 +434,37 @@ final class AudioEngine: ObservableObject {
             updated.isTapRunning = isProcessing && !failedIDs.contains(session.id)
             return updated
         }
+    }
+
+    private func refreshPeakLevels() {
+        guard isProcessing else {
+            if sessions.contains(where: { $0.peakLevel > 0 }) {
+                sessions = sessions.map { session in
+                    var updated = session
+                    updated.peakLevel = 0
+                    return updated
+                }
+            }
+            return
+        }
+
+        let levels = tapMixer.peakLevelsByBundleIdentifier
+        sessions = sessions.map { session in
+            let rawLevel = Float(truncating: levels[session.audioProcessBundleIdentifier] ?? 0)
+            let decayedLevel = session.peakLevel * 0.72
+            var updated = session
+            updated.peakLevel = min(max(rawLevel, decayedLevel), 1)
+            return updated
+        }
+    }
+
+    private func nextProfileName() -> String {
+        let existingNames = Set(outputProfiles.map(\.name))
+        var index = outputProfiles.count + 1
+        while existingNames.contains("Profile \(index)") {
+            index += 1
+        }
+        return "Profile \(index)"
     }
 
     private func enumerateAudioProcesses() -> [ProcessAudioSession] {

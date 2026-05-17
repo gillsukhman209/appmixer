@@ -18,6 +18,7 @@ struct MixerPopoverView: View {
                     }
 
                     DeviceControlsPanel()
+                    ProfilesPanel()
                     MasterVolumePanel()
                     AppsPanel(activeCountText: activeCountText)
                 }
@@ -160,6 +161,188 @@ private struct DeviceControlsPanel: View {
     }
 }
 
+private struct ProfilesPanel: View {
+    @EnvironmentObject private var audioEngine: AudioEngine
+    @State private var draftProfileName = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.purple.opacity(0.95))
+                    .frame(width: 18)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Output Profiles")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text(profileSubtitle)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.48))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                HStack(spacing: 7) {
+                    Image(systemName: "tag.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.36))
+                    TextField("Work, Gaming, Night", text: $draftProfileName)
+                        .textFieldStyle(.plain)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.black.opacity(0.18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                Button {
+                    audioEngine.saveCurrentOutputProfile(named: draftProfileName)
+                    draftProfileName = ""
+                } label: {
+                    Label("Save Setup", systemImage: "plus")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(ProfileSaveButtonStyle())
+            }
+
+            if audioEngine.outputProfiles.isEmpty {
+                EmptyProfilesRow()
+            } else {
+                VStack(spacing: 7) {
+                    ForEach(audioEngine.outputProfiles.prefix(3)) { profile in
+                        ProfileRow(profile: profile)
+                    }
+                }
+            }
+
+            if audioEngine.outputProfiles.count > 3 {
+                Menu {
+                    ForEach(audioEngine.outputProfiles) { profile in
+                        Button {
+                            audioEngine.applyOutputProfile(profile.id)
+                        } label: {
+                            Label(profile.name, systemImage: "slider.horizontal.below.rectangle")
+                        }
+                    }
+
+                    Divider()
+
+                    Menu("Delete Profile") {
+                        ForEach(audioEngine.outputProfiles) { profile in
+                            Button(role: .destructive) {
+                                audioEngine.deleteOutputProfile(profile.id)
+                            } label: {
+                                Label(profile.name, systemImage: "trash")
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("Show All \(audioEngine.outputProfiles.count) Profiles")
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.42))
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(Color.white.opacity(0.045))
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                }
+                .menuStyle(.borderlessButton)
+            }
+        }
+        .panelSurface()
+    }
+
+    private var profileSubtitle: String {
+        audioEngine.outputProfiles.isEmpty ? "Save volume, mute, and routing" : "\(audioEngine.outputProfiles.count) saved setup\(audioEngine.outputProfiles.count == 1 ? "" : "s")"
+    }
+}
+
+private struct ProfileRow: View {
+    @EnvironmentObject private var audioEngine: AudioEngine
+    let profile: OutputProfile
+
+    var body: some View {
+        HStack(spacing: 9) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.07))
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppTheme.accent.opacity(0.9))
+            }
+            .frame(width: 32, height: 32)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(profile.name)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                Text("\(profile.appSettings.count) apps · master \(Int(profile.masterVolume * 100))%")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                audioEngine.applyOutputProfile(profile.id)
+            } label: {
+                Text("Apply")
+            }
+            .buttonStyle(ProfileApplyButtonStyle())
+
+            Button {
+                audioEngine.deleteOutputProfile(profile.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 26, height: 26)
+            }
+            .buttonStyle(IconButtonStyle(isDestructive: true))
+            .help("Delete \(profile.name)")
+        }
+        .padding(8)
+        .background(Color.black.opacity(0.13))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.white.opacity(0.055), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct EmptyProfilesRow: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.up.doc.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.38))
+            Text("Name your setup, then save it here.")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.45))
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Color.black.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
 private struct DeviceControlRow<Accessory: View>: View {
     let icon: String
     let title: String
@@ -288,15 +471,19 @@ private struct AppVolumeRow: View {
                 }
 
                 HStack(spacing: 10) {
-                    Slider(
-                        value: Binding(
-                            get: { session.volume },
-                            set: { audioEngine.setVolume($0, for: session.id) }
-                        ),
-                        in: 0...1
-                    )
-                    .controlSize(.small)
-                    .tint(session.isMuted ? .gray : AppTheme.accent)
+                    VStack(spacing: 4) {
+                        Slider(
+                            value: Binding(
+                                get: { session.volume },
+                                set: { audioEngine.setVolume($0, for: session.id) }
+                            ),
+                            in: 0...1
+                        )
+                        .controlSize(.small)
+                        .tint(session.isMuted ? .gray : AppTheme.accent)
+
+                        PeakMeter(level: session.isMuted ? 0 : session.peakLevel)
+                    }
 
                     Text("\(Int(session.volume * 100))%")
                         .font(.system(.caption2, design: .monospaced).weight(.bold))
@@ -328,6 +515,37 @@ private struct AppVolumeRow: View {
     private var rowBackground: Color {
         let opacity = session.isTapRunning || !audioEngine.isProcessing ? 0.082 : 0.045
         return Color.white.opacity(opacity)
+    }
+}
+
+private struct PeakMeter: View {
+    let level: Float
+
+    private var normalizedLevel: CGFloat {
+        CGFloat(min(max(level, 0), 1))
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.075))
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [AppTheme.accent.opacity(0.78), Color.green.opacity(0.78), Color.yellow.opacity(0.86)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(3, proxy.size.width * normalizedLevel))
+                    .opacity(normalizedLevel > 0.015 ? 1 : 0.28)
+            }
+        }
+        .frame(height: 4)
+        .animation(.easeOut(duration: 0.08), value: normalizedLevel)
+        .accessibilityLabel("Audio level")
     }
 }
 
@@ -536,6 +754,33 @@ private struct PrimaryPillButtonStyle: ButtonStyle {
             .clipShape(Capsule())
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.82 : 1)
+    }
+}
+
+private struct ProfileSaveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.bold))
+            .foregroundStyle(Color.black)
+            .lineLimit(1)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
+            .background(AppTheme.accent)
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.84 : 1)
+    }
+}
+
+private struct ProfileApplyButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.bold))
+            .foregroundStyle(Color.black)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(AppTheme.accent.opacity(configuration.isPressed ? 0.78 : 0.94))
+            .clipShape(Capsule())
     }
 }
 
