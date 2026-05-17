@@ -79,3 +79,127 @@ final class OutputDeviceManager {
         return AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size) == noErr && size > 0
     }
 }
+
+final class InputDeviceManager {
+    func inputDevices() -> [AudioInputDevice] {
+        var devices: [AudioObjectID] = []
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size) == noErr else {
+            return []
+        }
+        let count = Int(size) / MemoryLayout<AudioObjectID>.size
+        devices = Array(repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &devices) == noErr else {
+            return []
+        }
+
+        return devices.compactMap { deviceID in
+            guard hasInputStreams(deviceID), let uid = stringProperty(kAudioDevicePropertyDeviceUID, objectID: deviceID) else {
+                return nil
+            }
+            let name = stringProperty(kAudioObjectPropertyName, objectID: deviceID) ?? uid
+            return AudioInputDevice(
+                id: deviceID,
+                uid: uid,
+                name: name,
+                isLikelyHeadsetMicrophone: Self.isLikelyHeadsetMicrophone(name: name, uid: uid),
+                isLikelyBuiltInMicrophone: Self.isLikelyBuiltInMicrophone(name: name, uid: uid)
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.isLikelyBuiltInMicrophone != rhs.isLikelyBuiltInMicrophone {
+                return lhs.isLikelyBuiltInMicrophone
+            }
+            if lhs.isLikelyHeadsetMicrophone != rhs.isLikelyHeadsetMicrophone {
+                return !lhs.isLikelyHeadsetMicrophone
+            }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    func defaultInputDeviceID() -> AudioObjectID {
+        var deviceID = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &deviceID)
+        return deviceID
+    }
+
+    func setDefaultInputDevice(_ deviceID: AudioObjectID) -> OSStatus {
+        var mutableID = deviceID
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        return AudioObjectSetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            UInt32(MemoryLayout<AudioObjectID>.size),
+            &mutableID
+        )
+    }
+
+    func stringProperty(_ selector: AudioObjectPropertySelector, objectID: AudioObjectID) -> String? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: selector,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var value: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        let status = withUnsafeMutablePointer(to: &value) {
+            AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, $0)
+        }
+        guard status == noErr else { return nil }
+        return value as String
+    }
+
+    private func hasInputStreams(_ objectID: AudioObjectID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        return AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size) == noErr && size > 0
+    }
+
+    private static func isLikelyBuiltInMicrophone(name: String, uid: String) -> Bool {
+        let value = "\(name) \(uid)".lowercased()
+        return value.contains("built-in") ||
+            value.contains("builtin") ||
+            value.contains("macbook") ||
+            value.contains("internal microphone")
+    }
+
+    private static func isLikelyHeadsetMicrophone(name: String, uid: String) -> Bool {
+        let value = "\(name) \(uid)".lowercased()
+        let markers = [
+            "airpods",
+            "bose",
+            "qc35",
+            "qc 35",
+            "beats",
+            "headset",
+            "headphone",
+            "hands-free",
+            "handsfree",
+            "bluetooth",
+            "wh-",
+            "wf-"
+        ]
+        return markers.contains { value.contains($0) }
+    }
+}

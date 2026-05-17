@@ -6,6 +6,8 @@ final class AppVolumeStore {
     private let muteKey = "AppMixer.mutes"
     private let outputKey = "AppMixer.outputs"
     private let masterKey = "AppMixer.masterVolume"
+    private let preferredInputKey = "AppMixer.preferredInputUID"
+    private let microphoneGuardKey = "AppMixer.microphoneGuardEnabled"
 
     var masterVolume: Float {
         get {
@@ -48,6 +50,24 @@ final class AppVolumeStore {
         var values = defaults.dictionary(forKey: outputKey) as? [String: String] ?? [:]
         values[bundleID] = outputUID
         defaults.set(values, forKey: outputKey)
+    }
+
+    var preferredInputUID: String? {
+        get {
+            defaults.string(forKey: preferredInputKey)
+        }
+        set {
+            defaults.set(newValue, forKey: preferredInputKey)
+        }
+    }
+
+    var microphoneGuardEnabled: Bool {
+        get {
+            defaults.object(forKey: microphoneGuardKey) as? Bool ?? true
+        }
+        set {
+            defaults.set(newValue, forKey: microphoneGuardKey)
+        }
     }
 
     private static func clampVolume(_ value: Float) -> Float {

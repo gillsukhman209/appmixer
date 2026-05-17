@@ -6,13 +6,20 @@ import Foundation
 final class AudioEngine: ObservableObject {
     @Published var sessions: [ProcessAudioSession] = []
     @Published var outputDevices: [OutputDevice] = []
+    @Published var inputDevices: [AudioInputDevice] = []
     @Published var selectedOutputDeviceID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
+    @Published var preferredInputDeviceUID: String?
+    @Published var currentInputDeviceID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
+    @Published var currentInputDeviceName = "Unknown"
+    @Published var microphoneGuardEnabled: Bool
+    @Published var microphoneStatusMessage: StatusMessage?
     @Published var statusMessage: StatusMessage?
     @Published var isProcessing = false
     @Published var masterVolume: Float
 
     private let store = AppVolumeStore()
     private let outputManager = OutputDeviceManager()
+    private let inputManager = InputDeviceManager()
     private let permissionsManager = PermissionsManager()
     private let virtualDevice = VirtualAudioDevice()
     private let tapMixer = AMCoreAudioTapMixer()
@@ -28,11 +35,15 @@ final class AudioEngine: ObservableObject {
 
     init() {
         masterVolume = store.masterVolume
+        preferredInputDeviceUID = store.preferredInputUID
+        microphoneGuardEnabled = store.microphoneGuardEnabled
         tapMixer.masterVolume = masterVolume
     }
 
     func start() async {
         reloadOutputs()
+        reloadInputs()
+        enforceMicrophonePolicy()
         refreshNow()
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
@@ -47,6 +58,8 @@ final class AudioEngine: ObservableObject {
 
     func refreshNow() {
         reloadOutputs()
+        reloadInputs()
+        enforceMicrophonePolicy()
         let fresh = enumerateAudioProcesses()
         sessions = fresh
         if isProcessing {
@@ -136,6 +149,28 @@ final class AudioEngine: ObservableObject {
         tapMixer.masterVolume = clampedValue
     }
 
+    func setMicrophoneGuardEnabled(_ isEnabled: Bool) {
+        microphoneGuardEnabled = isEnabled
+        store.microphoneGuardEnabled = isEnabled
+        if isEnabled {
+            if preferredInputDeviceUID == nil {
+                preferredInputDeviceUID = bestFallbackInputDevice()?.uid
+                store.preferredInputUID = preferredInputDeviceUID
+            }
+            enforceMicrophonePolicy(forcePreferred: true)
+        } else {
+            microphoneStatusMessage = nil
+        }
+    }
+
+    func setPreferredInputDeviceUID(_ uid: String?) {
+        preferredInputDeviceUID = uid
+        store.preferredInputUID = uid
+        if microphoneGuardEnabled {
+            enforceMicrophonePolicy(forcePreferred: uid != nil)
+        }
+    }
+
     func selectOutputDevice(_ deviceID: AudioObjectID) {
         guard deviceID != kAudioObjectUnknown else { return }
         do {
@@ -175,6 +210,66 @@ final class AudioEngine: ObservableObject {
         if selectedOutputDeviceID == kAudioObjectUnknown {
             selectedOutputDeviceID = outputManager.defaultOutputDeviceID()
         }
+    }
+
+    private func reloadInputs() {
+        inputDevices = inputManager.inputDevices()
+        currentInputDeviceID = inputManager.defaultInputDeviceID()
+        currentInputDeviceName = inputDevices.first(where: { $0.id == currentInputDeviceID })?.name ?? "Unknown"
+
+        if let preferredInputDeviceUID,
+           !inputDevices.contains(where: { $0.uid == preferredInputDeviceUID }) {
+            microphoneStatusMessage = StatusMessage(
+                title: "Preferred Mic Unavailable",
+                detail: "AppMixer will use a built-in or external microphone until your preferred input reconnects.",
+                style: .info
+            )
+        } else if microphoneStatusMessage?.title == "Preferred Mic Unavailable" {
+            microphoneStatusMessage = nil
+        }
+    }
+
+    private func enforceMicrophonePolicy(forcePreferred: Bool = false) {
+        guard microphoneGuardEnabled else { return }
+        guard !inputDevices.isEmpty else { return }
+
+        let current = inputDevices.first(where: { $0.id == currentInputDeviceID })
+        let preferred = preferredInputDeviceUID.flatMap { uid in
+            inputDevices.first(where: { $0.uid == uid })
+        }
+
+        let target: AudioInputDevice?
+        if let preferred, (forcePreferred || current?.id != preferred.id) {
+            target = preferred
+        } else if current?.isLikelyHeadsetMicrophone == true {
+            target = bestFallbackInputDevice()
+        } else {
+            target = nil
+        }
+
+        guard let target, target.id != currentInputDeviceID else { return }
+        let status = inputManager.setDefaultInputDevice(target.id)
+        if status == noErr {
+            currentInputDeviceID = target.id
+            currentInputDeviceName = target.name
+            if preferredInputDeviceUID == nil {
+                preferredInputDeviceUID = target.uid
+                store.preferredInputUID = target.uid
+            }
+            microphoneStatusMessage = nil
+        } else {
+            microphoneStatusMessage = StatusMessage(
+                title: "Mic Switch Failed",
+                detail: "AppMixer could not set \(target.name) as the system input device. CoreAudio returned \(status).",
+                style: .warning
+            )
+        }
+    }
+
+    private func bestFallbackInputDevice() -> AudioInputDevice? {
+        inputDevices.first(where: { $0.isLikelyBuiltInMicrophone }) ??
+            inputDevices.first(where: { !$0.isLikelyHeadsetMicrophone }) ??
+            inputDevices.first
     }
 
     private func syncTaps() {

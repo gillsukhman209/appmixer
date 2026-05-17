@@ -14,6 +14,7 @@ struct MixerPopoverView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     statusPanel
+                    inputPanel
                     masterPanel
                     appList
                 }
@@ -117,6 +118,49 @@ struct MixerPopoverView: View {
                 .onChange(of: audioEngine.masterVolume) { value in
                     audioEngine.setMasterVolume(value)
                 }
+        }
+        .panelStyle()
+    }
+
+    private var inputPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "mic.fill")
+                    .foregroundStyle(.white.opacity(0.76))
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Auto Mic")
+                        .font(.subheadline.weight(.semibold))
+                    Text(audioEngine.currentInputDeviceName)
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.48))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { audioEngine.microphoneGuardEnabled },
+                        set: { audioEngine.setMicrophoneGuardEnabled($0) }
+                    )
+                )
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+            }
+
+            HStack(spacing: 10) {
+                InputDeviceMenu()
+                    .disabled(!audioEngine.microphoneGuardEnabled)
+                    .opacity(audioEngine.microphoneGuardEnabled ? 1 : 0.48)
+            }
+
+            if let message = audioEngine.microphoneStatusMessage {
+                StatusMessageView(message: message)
+            }
         }
         .panelStyle()
     }
@@ -283,6 +327,72 @@ private struct AppVolumeRow: View {
         .padding(12)
         .background(Color.white.opacity(session.isTapRunning || !audioEngine.isProcessing ? 0.075 : 0.045))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct InputDeviceMenu: View {
+    @EnvironmentObject private var audioEngine: AudioEngine
+
+    private var selectedName: String {
+        guard let uid = audioEngine.preferredInputDeviceUID,
+              let device = audioEngine.inputDevices.first(where: { $0.uid == uid }) else {
+            return "Auto"
+        }
+        return device.name
+    }
+
+    var body: some View {
+        Menu {
+            Button {
+                audioEngine.setPreferredInputDeviceUID(nil)
+            } label: {
+                Label("Auto-select", systemImage: audioEngine.preferredInputDeviceUID == nil ? "checkmark" : "mic")
+            }
+
+            Divider()
+
+            ForEach(audioEngine.inputDevices) { device in
+                Button {
+                    audioEngine.setPreferredInputDeviceUID(device.uid)
+                } label: {
+                    Label(inputLabel(for: device), systemImage: iconName(for: device))
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "dial.low.fill")
+                    .foregroundStyle(.white.opacity(0.42))
+                Text(selectedName)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.52))
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.78))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.075))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .help("Preferred system input device")
+    }
+
+    private func inputLabel(for device: AudioInputDevice) -> String {
+        if device.isLikelyHeadsetMicrophone {
+            return "\(device.name) - headset mic"
+        }
+        return device.name
+    }
+
+    private func iconName(for device: AudioInputDevice) -> String {
+        if audioEngine.preferredInputDeviceUID == device.uid {
+            return "checkmark"
+        }
+        return device.isLikelyHeadsetMicrophone ? "headphones" : "mic"
     }
 }
 

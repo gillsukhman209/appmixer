@@ -32,3 +32,11 @@ struct OutputDevice: Identifiable, Equatable {
     let uid: String
     let name: String
 }
+
+struct AudioInputDevice: Identifiable, Equatable {
+    let id: AudioObjectID
+    let uid: String
+    let name: String
+    let isLikelyHeadsetMicrophone: Bool
+    let isLikelyBuiltInMicrophone: Bool
+}
