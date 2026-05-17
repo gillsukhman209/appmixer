@@ -8,7 +8,7 @@ struct AppMixerApp: App {
         MenuBarExtra {
             MixerPopoverView()
                 .environmentObject(audioEngine)
-                .frame(width: 420, height: 560)
+                .frame(width: 448, height: 640)
                 .task {
                     await audioEngine.start()
                 }

@@ -1,5 +1,6 @@
 import AppKit
 import CoreAudio
+import Darwin
 import Foundation
 
 @MainActor
@@ -24,6 +25,7 @@ final class AudioEngine: ObservableObject {
     private let virtualDevice = VirtualAudioDevice()
     private let tapMixer = AMCoreAudioTapMixer()
     private var refreshTask: Task<Void, Never>?
+    private var identityCache: [String: AppDisplayIdentity] = [:]
 
     var backendDescription: String {
         if #available(macOS 14.2, *) {
@@ -467,6 +469,16 @@ final class AudioEngine: ObservableObject {
     }
 
     private func resolveDisplayIdentity(pid: pid_t, audioBundleID: String) -> AppDisplayIdentity {
+        let cacheKey = "\(pid):\(audioBundleID)"
+        if let cached = identityCache[cacheKey] {
+            return cached
+        }
+
+        if let bundleIdentity = displayIdentityFromProcessBundle(pid: pid, audioBundleID: audioBundleID) {
+            identityCache[cacheKey] = bundleIdentity
+            return bundleIdentity
+        }
+
         let runningApp = NSRunningApplication(processIdentifier: pid)
         let runningApps = NSWorkspace.shared.runningApplications
         let candidateBundleIDs = displayBundleCandidates(for: audioBundleID)
@@ -475,17 +487,82 @@ final class AudioEngine: ObservableObject {
             runningApps.first { $0.bundleIdentifier == candidate }
         }.first
 
+        if let knownIdentity = knownBrowserIdentity(audioBundleID: audioBundleID, runningApps: runningApps) {
+            identityCache[cacheKey] = knownIdentity
+            return knownIdentity
+        }
+
         let app = matchedApp ?? runningApp
         let bundleID = matchedApp?.bundleIdentifier ?? canonicalBundleIdentifier(for: audioBundleID)
         let rawName = app?.localizedName ?? bundleID
         let displayName = prettifiedAppName(rawName, bundleID: bundleID)
         let subtitle = audioBundleID == bundleID ? nil : "Audio helper"
 
-        return AppDisplayIdentity(
+        let identity = AppDisplayIdentity(
             bundleIdentifier: bundleID,
             displayName: displayName,
             icon: app?.icon,
             subtitle: subtitle
+        )
+        identityCache[cacheKey] = identity
+        return identity
+    }
+
+    private func displayIdentityFromProcessBundle(pid: pid_t, audioBundleID: String) -> AppDisplayIdentity? {
+        guard let executablePath = processExecutablePath(pid) else { return nil }
+        for appURL in appBundleURLs(containingExecutableAt: executablePath) {
+            guard let bundle = Bundle(url: appURL) else { continue }
+            let bundleID = bundle.bundleIdentifier ?? audioBundleID
+            let rawName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ??
+                bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ??
+                appURL.deletingPathExtension().lastPathComponent
+            let displayName = prettifiedAppName(rawName, bundleID: bundleID)
+            guard !displayName.isLikelyHelperName else { continue }
+
+            return AppDisplayIdentity(
+                bundleIdentifier: bundleID,
+                displayName: displayName,
+                icon: NSWorkspace.shared.icon(forFile: appURL.path),
+                subtitle: audioBundleID == bundleID ? nil : "Audio helper"
+            )
+        }
+        return nil
+    }
+
+    private func processExecutablePath(_ pid: pid_t) -> String? {
+        var buffer = [CChar](repeating: 0, count: 4096)
+        let result = proc_pidpath(pid, &buffer, UInt32(buffer.count))
+        guard result > 0 else { return nil }
+        return String(cString: buffer)
+    }
+
+    private func appBundleURLs(containingExecutableAt executablePath: String) -> [URL] {
+        let pathURL = URL(fileURLWithPath: executablePath)
+        let components = pathURL.pathComponents
+        var appURLs: [URL] = []
+
+        for index in components.indices where components[index].hasSuffix(".app") {
+            let appPath = NSString.path(withComponents: Array(components[0...index]))
+            appURLs.append(URL(fileURLWithPath: appPath))
+        }
+
+        return appURLs
+    }
+
+    private func knownBrowserIdentity(audioBundleID: String, runningApps: [NSRunningApplication]) -> AppDisplayIdentity? {
+        let lowercasedBundleID = audioBundleID.lowercased()
+        guard lowercasedBundleID.contains("company.thebrowser") else { return nil }
+
+        let app = runningApps.first { app in
+            app.localizedName == "Arc" ||
+                app.bundleIdentifier?.lowercased().contains("thebrowser") == true
+        }
+
+        return AppDisplayIdentity(
+            bundleIdentifier: app?.bundleIdentifier ?? "company.thebrowser.Browser",
+            displayName: app?.localizedName ?? "Arc",
+            icon: app?.icon ?? NSWorkspace.shared.icon(for: .applicationBundle),
+            subtitle: "Audio helper"
         )
     }
 
@@ -578,5 +655,16 @@ private extension Array where Element: Hashable {
 private extension Float {
     var clampedVolume: Float {
         min(max(self, 0), 1)
+    }
+}
+
+private extension String {
+    var isLikelyHelperName: Bool {
+        let value = lowercased()
+        return value == "helper" ||
+            value.hasSuffix(" helper") ||
+            value.contains(" renderer") ||
+            value.contains(" gpu") ||
+            value.contains(" plugin")
     }
 }
